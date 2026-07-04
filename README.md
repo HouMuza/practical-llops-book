@@ -1,12 +1,12 @@
 # Practical LLMOps Deep Dive — Companion Code
 
-**Runnable reference implementation for Appendix E of [*Practical LLMOps Deep Dive*](https://houmuza.gumroad.com/l/practical-llmops-deep-dive).**
+**Runnable reference implementation for Appendix E of *[Practical LLMOps Deep Dive](https://houmuza.gumroad.com/l/practical-llmops-deep-dive)*.**
 
 > **Get the book:** [houmuza.gumroad.com/l/practical-llmops-deep-dive](https://houmuza.gumroad.com/l/practical-llmops-deep-dive)
 
 This repository is the companion code for **Practical LLMOps Deep Dive: Building Production LLM Systems from First Principles** (First Edition, 2026) by Houston Muzamhindo.
 
-The book explains *what happens between* `model.generate()` and a production endpoint. This repo is where those ideas become a complete, runnable system — typed, instrumented, and structured like a real service.
+The book explains *what happens between* `model.generate()` and a production endpoint. This repo is where those ideas become a complete, runnable system with code that is typed, instrumented, and structured like a real service.
 
 ---
 
@@ -14,30 +14,34 @@ The book explains *what happens between* `model.generate()` and a production end
 
 Most LLM tutorials teach you to call an API or run `vllm serve`. Few explain the machinery in between: tokenisation, prefill, decode, KV cache layout, batching, scheduling, quantisation, parallelism, deployment, monitoring, evaluation, and cost.
 
-**Practical LLMOps Deep Dive** is a serving-focused guide for engineers and data scientists who want to understand those mechanics from first principles, then translate that understanding into production systems — with deployment examples anchored on **Azure ML**.
+**Practical LLMOps Deep Dive** is a serving-focused guide for engineers and data scientists who want to understand those mechanics from first principles, then translate that understanding into production systems with deployment examples anchored on **Azure ML**.
 
 The book is **not** mainly about prompt engineering, chatbot UX, or wrapping a closed-source API. It is about operating a model as a shared production service.
 
-**Examples are anchored on [Qwen/Qwen3-0.6B](https://huggingface.co/Qwen/Qwen3-0.6B)** — small enough to run on accessible hardware, large enough to surface the same serving problems that appear at 7B and 70B scale.
+**Examples are anchored on [Qwen/Qwen3-0.6B](https://huggingface.co/Qwen/Qwen3-0.6B)** because it is small enough to run on accessible hardware, large enough to surface the same serving problems that appear at 7B and 70B scale.
 
 ### What the book covers (Parts 1–4)
 
-| Part | Topics |
-|------|--------|
-| **1 — Foundations** | Why naive inference fails in production, the five layers of LLMOps, Qwen3-0.6B as the reference model |
-| **2 — The Serving Layer** | Attention & KV cache, the inference loop, batching & scheduling, quantisation, speculative decoding |
-| **3 — Deployment at Scale** | Multi-GPU inference, LoRA/QLoRA fine-tuning, structured output, Azure ML deployment |
-| **4 — Observability & Operations** | OpenTelemetry, MLflow, Azure Monitor, cost optimisation, evaluation & quality monitoring |
 
-Part 5 contains hands-on projects for readers who want to apply the material end to end. **This repository implements Appendix E** — the production-shaped reference scaffold — not the project homework.
+| Part                               | Topics                                                                                                |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **1 — Foundations**                | Why naive inference fails in production, the five layers of LLMOps, Qwen3-0.6B as the reference model |
+| **2 — The Serving Layer**          | Attention & KV cache, the inference loop, batching & scheduling, quantisation, speculative decoding   |
+| **3 — Deployment at Scale**        | Multi-GPU inference, LoRA/QLoRA fine-tuning, structured output, Azure ML deployment                   |
+| **4 — Observability & Operations** | OpenTelemetry, MLflow, Azure Monitor, cost optimisation, evaluation & quality monitoring              |
+
+
+Part 5 contains hands-on projects for readers who want to apply the material end to end. **This repository implements Appendix E**, the production-shaped reference scaffold, not the project homework.
 
 ### How this repo relates to the book
 
-| In the book | In this repo |
-|-------------|--------------|
-| Short PyTorch snippets in chapter bodies | Pedagogical only — optimised for clarity |
-| Appendix E scaffold (printed) | Full source tree below |
-| Companion GitHub repository (Preface) | **You are here** — runnable code with typing, structured logging, OpenTelemetry, deployment assets, and eval utilities |
+
+| In the book                              | In this repo                                                                                                          |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Short PyTorch snippets in chapter bodies | Pedagogical only that is optimised for clarity                                                                        |
+| Appendix E scaffold (printed)            | Full source tree below                                                                                                |
+| Companion GitHub repository (Preface)    | **You are here**. Runnable code with typing, structured logging, OpenTelemetry, deployment assets, and eval utilities |
+
 
 ---
 
@@ -71,15 +75,17 @@ practical-llops-book/
 
 ### Key patterns implemented
 
-| Pattern | What the code demonstrates |
-|---------|---------------------------|
-| Paged KV cache with refcount | Shared prefix blocks are safe; blocks return to the free list only when refcount reaches zero |
-| Chunked prefill with fairness | Decodes first; long prompts progress over multiple scheduler iterations without destroying ITL |
-| Prefix cache with content hashing | Token ids + LoRA name are hashed; LRU eviction when the warm pool grows too large |
-| Multi-adapter routing | Requests carry `lora_name`; the serving layer keeps adapter selection explicit |
-| Speculative decoding boundary | Draft-model path is behind a replaceable interface; acceptance rate is logged |
-| Streaming SSE | Tokens emitted as SSE `data:` lines; client disconnect checked so KV memory is freed promptly |
-| OpenTelemetry instrumentation | Public methods create spans with `gen_ai.*` attributes aligned with the observability chapters |
+
+| Pattern                           | What the code demonstrates                                                                     |
+| --------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Paged KV cache with refcount      | Shared prefix blocks are safe; blocks return to the free list only when refcount reaches zero  |
+| Chunked prefill with fairness     | Decodes first; long prompts progress over multiple scheduler iterations without destroying ITL |
+| Prefix cache with content hashing | Token ids + LoRA name are hashed; LRU eviction when the warm pool grows too large              |
+| Multi-adapter routing             | Requests carry `lora_name`; the serving layer keeps adapter selection explicit                 |
+| Speculative decoding boundary     | Draft-model path is behind a replaceable interface; acceptance rate is logged                  |
+| Streaming SSE                     | Tokens emitted as SSE `data:` lines; client disconnect checked so KV memory is freed promptly  |
+| OpenTelemetry instrumentation     | Public methods create spans with `gen_ai.*` attributes aligned with the observability chapters |
+
 
 ---
 
@@ -89,7 +95,7 @@ practical-llops-book/
 - **PyTorch** with CUDA if you want GPU inference locally
 - **Hugging Face account** (optional) — `Qwen/Qwen3-0.6B` downloads on first run
 - **Azure subscription** (optional) — only needed for the Azure ML deployment path
-- **Azure CLI + `ml` extension** (optional) — for `make deploy-*` targets
+- **Azure CLI + `ml` extension** (optional) — for `make deploy-`* targets
 
 ---
 
@@ -157,18 +163,20 @@ make eval
 
 ## Make targets
 
-| Target | Purpose |
-|--------|---------|
-| `make install` | Create venv and install dependencies |
-| `make serve` | Start local FastAPI server |
-| `make health` | Hit `/health` |
-| `make smoke` | Non-streaming completion smoke test |
-| `make smoke-stream` | Streaming completion smoke test |
-| `make eval` | Generate predictions and run offline eval |
-| `make obs-show` | Show resolved Azure Monitor / MLflow config |
-| `make obs-report` | Generate observability report markdown |
-| `make deploy-all` | Full Azure ML provisioning + blue deployment (idempotent) |
-| `make endpoint-test` | Call managed endpoint `/score` |
+
+| Target               | Purpose                                                   |
+| -------------------- | --------------------------------------------------------- |
+| `make install`       | Create venv and install dependencies                      |
+| `make serve`         | Start local FastAPI server                                |
+| `make health`        | Hit `/health`                                             |
+| `make smoke`         | Non-streaming completion smoke test                       |
+| `make smoke-stream`  | Streaming completion smoke test                           |
+| `make eval`          | Generate predictions and run offline eval                 |
+| `make obs-show`      | Show resolved Azure Monitor / MLflow config               |
+| `make obs-report`    | Generate observability report markdown                    |
+| `make deploy-all`    | Full Azure ML provisioning + blue deployment (idempotent) |
+| `make endpoint-test` | Call managed endpoint `/score`                            |
+
 
 See the `Makefile` for the full list, including blue/green traffic split and SDK fallbacks.
 
@@ -178,13 +186,15 @@ See the `Makefile` for the full list, including blue/green traffic split and SDK
 
 The verified default path in this repository uses a **CPU-backed** configuration so readers with fresh Azure subscriptions are not blocked by GPU quota:
 
-| Setting | Default |
-|---------|---------|
-| Region | `swedencentral` |
-| Endpoint auth | key |
+
+| Setting        | Default           |
+| -------------- | ----------------- |
+| Region         | `swedencentral`   |
+| Endpoint auth  | key               |
 | Deployment SKU | `Standard_E4s_v3` |
-| Runtime device | `cpu` |
-| Runtime dtype | `fp32` |
+| Runtime device | `cpu`             |
+| Runtime dtype  | `fp32`            |
+
 
 GPU quota for `Standard_NC4as_T4_v3` is often `0` until a quota request is approved. Once you have quota, update the deployment YAML and Makefile defaults to switch back to a T4 GPU configuration as described in the book.
 
