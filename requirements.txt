@@ -1,4 +1,5 @@
 accelerate>=0.33.0
+bitsandbytes>=0.43.0; platform_system != "Darwin"
 azureml-inference-server-http>=1.4.0
 azure-ai-ml>=1.17.0
 azureml-mlflow>=1.57.0
@@ -13,6 +14,7 @@ numpy>=1.26.0
 opentelemetry-api>=1.25.0
 opentelemetry-sdk>=1.25.0
 pandas>=2.2.0
+datasets>=2.20.0
 peft>=0.12.0
 pydantic>=2.7.0
 python-json-logger>=2.0.7

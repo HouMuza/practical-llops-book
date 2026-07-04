@@ -1,0 +1,3 @@
+{"id":"ex-001","input":"Extract the ticket id: Ticket T-123 was closed today.","prediction":"T-123","reference":"T-123","task":"extraction"}
+{"id":"ex-002","input":"Return JSON with sentiment for: I am unhappy with the delay.","prediction":"{\"sentiment\":\"negative\"}","reference":"{\"sentiment\":\"negative\"}","task":"structured"}
+{"id":"ex-003","input":"Summarise: The deployment failed because GPU memory was exhausted during prefill.","prediction":"GPU OOM during prefill caused deployment failure.","reference":"Deployment failed due to GPU memory exhaustion during prefill.","task":"summarisation"}

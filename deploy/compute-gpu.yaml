@@ -1,0 +1,9 @@
+# One-time: create a GPU compute cluster for training jobs.
+#   az ml compute create --file deploy/compute-gpu.yaml -g $RESOURCE_GROUP -w $WORKSPACE_NAME
+$schema: https://azuremlschemas.azureedge.net/latest/amlCompute.schema.json
+name: llmops-gpu-cluster
+type: amlcompute
+size: Standard_NC4as_T4_v3
+min_instances: 0
+max_instances: 2
+idle_time_before_scale_down: 120

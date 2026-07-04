@@ -1,0 +1,5 @@
+{"messages":[{"role":"user","content":"What is a KV cache in LLM serving?"},{"role":"assistant","content":"A KV cache stores key and value tensors from prior tokens so decode steps reuse prefix attention instead of recomputing it."}]}
+{"messages":[{"role":"user","content":"Explain continuous batching in one sentence."},{"role":"assistant","content":"Continuous batching adds and removes requests from a live GPU batch each scheduler iteration instead of waiting for a fixed batch to finish."}]}
+{"messages":[{"role":"user","content":"When should I use LoRA instead of full fine-tuning?"},{"role":"assistant","content":"Use LoRA when you need a domain adapter with low memory and fast iteration, and full fine-tuning when the base weights must change substantially."}]}
+{"messages":[{"role":"user","content":"Return JSON with sentiment for: The deployment was fast and reliable."},{"role":"assistant","content":"{\"sentiment\":\"positive\"}"}]}
+{"messages":[{"role":"user","content":"Extract the ticket id from: Ticket T-991 was escalated."},{"role":"assistant","content":"T-991"}]}

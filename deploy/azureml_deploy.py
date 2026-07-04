@@ -48,8 +48,13 @@ def create_or_update_deployment(
     model_version: str,
     instance_type: str,
     instance_count: int,
+    *,
+    device: str | None = None,
+    dtype: str | None = None,
 ) -> ManagedOnlineDeployment:
     obs_env = resolve_observability_env()
+    device = device or os.getenv("DEVICE", "cpu")
+    dtype = dtype or os.getenv("DTYPE", "fp32")
     environment = Environment(
         name=f"{endpoint_name}-env",
         version="1",
@@ -70,8 +75,8 @@ def create_or_update_deployment(
         app_insights_enabled=True,
         environment_variables={
             "MODEL_NAME": "Qwen/Qwen3-0.6B",
-            "DEVICE": "cpu",
-            "DTYPE": "fp32",
+            "DEVICE": device,
+            "DTYPE": dtype,
             "OTEL_SERVICE_NAME": f"llmops-qwen3-{deployment_name}",
             **{k: v for k, v in obs_env.items() if k in {"APPLICATIONINSIGHTS_CONNECTION_STRING", "MLFLOW_TRACKING_URI", "LOG_FORMAT"}},
         },
@@ -106,8 +111,10 @@ def parse_args() -> argparse.Namespace:
     full.add_argument("--model-name", default="qwen3-0.6b")
     full.add_argument("--model-version", default="1")
     full.add_argument("--model-path", default="deploy/model_artifact")
-    full.add_argument("--instance-type", default="Standard_E4s_v3")
+    full.add_argument("--instance-type", default=os.getenv("INSTANCE_TYPE", "Standard_E4s_v3"))
     full.add_argument("--instance-count", type=int, default=1)
+    full.add_argument("--device", default=os.getenv("DEVICE", "cpu"))
+    full.add_argument("--dtype", default=os.getenv("DTYPE", "fp32"))
 
     traffic = sub.add_parser("set-traffic", help="Update endpoint traffic split")
     traffic.add_argument("--endpoint", default="qwen3-prod")
@@ -140,6 +147,8 @@ def main() -> None:
             model_version=args.model_version,
             instance_type=args.instance_type,
             instance_count=args.instance_count,
+            device=args.device,
+            dtype=args.dtype,
         )
 
         print("Routing traffic...")

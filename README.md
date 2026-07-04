@@ -1,4 +1,4 @@
-# Practical LLMOps Deep Dive — Companion Code
+# Practical LLMOps Deep Dive: Companion Code
 
 **Runnable reference implementation for Appendix E of *[Practical LLMOps Deep Dive](https://houmuza.gumroad.com/l/practical-llmops-deep-dive)*.**
 
@@ -25,10 +25,10 @@ The book is **not** mainly about prompt engineering, chatbot UX, or wrapping a c
 
 | Part                               | Topics                                                                                                |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| **1 — Foundations**                | Why naive inference fails in production, the five layers of LLMOps, Qwen3-0.6B as the reference model |
-| **2 — The Serving Layer**          | Attention & KV cache, the inference loop, batching & scheduling, quantisation, speculative decoding   |
-| **3 — Deployment at Scale**        | Multi-GPU inference, LoRA/QLoRA fine-tuning, structured output, Azure ML deployment                   |
-| **4 — Observability & Operations** | OpenTelemetry, MLflow, Azure Monitor, cost optimisation, evaluation & quality monitoring              |
+| **Part 1: Foundations**                | Why naive inference fails in production, the five layers of LLMOps, Qwen3-0.6B as the reference model |
+| **Part 2: The Serving Layer**          | Attention & KV cache, the inference loop, batching & scheduling, quantisation, speculative decoding   |
+| **Part 3: Deployment at Scale**        | Multi-GPU inference, LoRA/QLoRA fine-tuning, structured output, Azure ML deployment                   |
+| **Part 4: Observability & Operations** | OpenTelemetry, MLflow, Azure Monitor, cost optimisation, evaluation & quality monitoring              |
 
 
 Part 5 contains hands-on projects for readers who want to apply the material end to end. **This repository implements Appendix E**, the production-shaped reference scaffold, not the project homework.
@@ -55,9 +55,9 @@ It *is* the production-shaped version of the book's teaching code:
 - **Instrumented** with OpenTelemetry spans and structured JSON logs
 - **Testable** offline eval pipeline with deterministic scorers
 - **Deployable** to Azure ML managed online endpoints
-- **Readable** — the goal is understanding, not winning throughput benchmarks out of the box
+- **Readable**: the goal is understanding, not winning throughput benchmarks out of the box
 
-The attention path delegates to Hugging Face / PyTorch for the runnable teaching implementation. In a high-throughput service you would replace `engine/attention.py` with a vLLM, Triton, or FlashAttention kernel wrapper. The operational shape — scheduling, KV ownership, streaming cancellation, metrics, and eval gates — stays the same.
+The attention path delegates to Hugging Face / PyTorch for the runnable teaching implementation. In a high-throughput service you would replace `engine/attention.py` with a vLLM, Triton, or FlashAttention kernel wrapper. The operational shape (scheduling, KV ownership, streaming cancellation, metrics, and eval gates) stays the same.
 
 ### Repository layout
 
@@ -93,9 +93,9 @@ practical-llops-book/
 
 - **Python 3.11+** (3.13 tested locally)
 - **PyTorch** with CUDA if you want GPU inference locally
-- **Hugging Face account** (optional) — `Qwen/Qwen3-0.6B` downloads on first run
-- **Azure subscription** (optional) — only needed for the Azure ML deployment path
-- **Azure CLI + `ml` extension** (optional) — for `make deploy-`* targets
+- **Hugging Face account** (optional): `Qwen/Qwen3-0.6B` downloads on first run
+- **Azure subscription** (optional): only needed for the Azure ML deployment path
+- **Azure CLI + `ml` extension** (optional): for `make deploy-`* targets
 
 ---
 
@@ -155,8 +155,46 @@ make smoke-stream
 
 ### 5. Run offline evaluation
 
+Requires the API in another terminal (`make serve`).
+
 ```bash
 make eval
+```
+
+---
+
+## Operations guides
+
+Step-by-step guides for every path readers need:
+
+| Guide | Commands |
+|-------|----------|
+| [**docs/README.md**](docs/README.md) | Index & decision tree |
+| [Local GPU, Docker & streaming](docs/local-gpu-docker-streaming.md) | `make serve-gpu`, `make smoke-stream`, `make docker-run-gpu` |
+| [Azure ML deployment](docs/azure-deployment.md) | `make deploy-all`, `make deploy-all-gpu`, GitHub Actions |
+| [Training & evaluation](docs/training-and-eval.md) | `make train-lora-local`, `make train-lora-azure`, `make eval-judge` |
+| [YAML reference](docs/yaml-reference.md) | Field-by-field deploy file reference |
+
+### Common commands
+
+```bash
+# Local GPU + streaming
+make serve-gpu && make smoke-stream
+
+# Docker (matches Azure image)
+make docker-build && make docker-run-gpu
+
+# Azure CPU (no GPU quota)
+make deploy-all && make endpoint-test
+
+# Azure GPU (T4 quota required)
+make deploy-all-gpu && make endpoint-test
+
+# LoRA on Azure
+make compute-gpu-create && make train-lora-azure
+
+# LLM-as-judge (needs JUDGE_API_KEY)
+make eval && make eval-judge
 ```
 
 ---
@@ -184,6 +222,8 @@ See the `Makefile` for the full list, including blue/green traffic split and SDK
 
 ## Azure ML deployment
 
+See **[docs/azure-deployment.md](docs/azure-deployment.md)** for the full YAML pipeline walkthrough.
+
 The verified default path in this repository uses a **CPU-backed** configuration so readers with fresh Azure subscriptions are not blocked by GPU quota:
 
 
@@ -196,7 +236,13 @@ The verified default path in this repository uses a **CPU-backed** configuration
 | Runtime dtype  | `fp32`            |
 
 
-GPU quota for `Standard_NC4as_T4_v3` is often `0` until a quota request is approved. Once you have quota, update the deployment YAML and Makefile defaults to switch back to a T4 GPU configuration as described in the book.
+GPU quota for `Standard_NC4as_T4_v3` is often `0` until a quota request is approved. Once you have quota:
+
+```bash
+make deploy-all-gpu
+```
+
+Or use the GitHub Actions workflow with **profile: gpu**. CPU defaults remain in `deployment-blue.yaml`; GPU uses `deployment-blue-gpu.yaml`.
 
 ### CLI deployment
 
@@ -209,7 +255,7 @@ make deploy-all
 make endpoint-test
 ```
 
-Targets are safe to rerun — existing resources are updated or skipped rather than failing on duplicates.
+Targets are safe to rerun: existing resources are updated or skipped rather than failing on duplicates.
 
 ### GitHub Actions
 
@@ -221,7 +267,7 @@ A manual workflow is available at `.github/workflows/azureml-deploy.yml`.
 AZURE_CLIENT_ID
 AZURE_TENANT_ID
 AZURE_SUBSCRIPTION_ID
-AZURE_ACTION_GROUP_ID   # optional — alerts only
+AZURE_ACTION_GROUP_ID   # optional, alerts only
 ```
 
 Use Azure federated credentials (OIDC) for the workflow identity. Trigger from the Actions tab and provide resource group, workspace name, location, endpoint name, instance type, instance count, and model asset version.
@@ -300,7 +346,7 @@ The `eval/` package includes:
 - **ML engineers** building or operating LLM serving infrastructure
 - **Data scientists** moving from notebooks to production services
 - **Platform / infrastructure engineers** deploying models on Azure ML
-- **Technical leads** who need to reason about vLLM defaults, KV memory, and cost — not just configure them
+- **Technical leads** who need to reason about vLLM defaults, KV memory, and cost, not just configure them
 
 ---
 

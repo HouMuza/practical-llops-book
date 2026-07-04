@@ -1,4 +1,6 @@
 FROM mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04:latest
+# Shared by: local `make docker-build`, Azure ML managed endpoints (environment build),
+# and LoRA training jobs (command job). Azure ML calls serve/score.py, not uvicorn CMD.
  
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1 \

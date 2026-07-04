@@ -1,0 +1,42 @@
+name: Train LoRA on Azure ML
+
+on:
+  workflow_dispatch:
+    inputs:
+      resource_group:
+        description: Azure resource group name
+        required: true
+        default: llmops-book-rg
+      workspace_name:
+        description: Azure ML workspace name
+        required: true
+        default: llmops-book-mlw
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    env:
+      SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      RESOURCE_GROUP: ${{ github.event.inputs.resource_group }}
+      WORKSPACE_NAME: ${{ github.event.inputs.workspace_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Azure ML CLI extension
+        run: az extension add -n ml -y
+
+      - name: Ensure GPU compute cluster
+        run: make compute-gpu-create
+
+      - name: Upload sample training data and submit job
+        run: make train-lora-azure

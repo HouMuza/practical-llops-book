@@ -1,0 +1,42 @@
+# Azure ML command job: LoRA fine-tune Qwen3-0.6B on JSONL in the workspace default datastore.
+#
+# 1. Upload training file (once):
+#    az ml data create --name qwen3-train-sample --version 1 \
+#      --path train/data/sample.jsonl --type uri_file \
+#      -g $RESOURCE_GROUP -w $WORKSPACE_NAME
+#
+# 2. Ensure GPU cluster exists:
+#    make compute-gpu-create
+#
+# 3. Submit job:
+#    make train-lora-azure
+#
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+experiment_name: qwen3-lora-sft
+code: ..
+command: >
+  python -m pip install --upgrade pip &&
+  pip install -r requirements.txt &&
+  python -m train.lora_train
+  --train-jsonl ${{inputs.train_jsonl}}
+  --output-dir ${{outputs.adapter}}
+  --epochs 1
+environment:
+  build:
+    path: ..
+    dockerfile_path: serve/Dockerfile
+compute: azureml:llmops-gpu-cluster
+inputs:
+  train_jsonl:
+    type: uri_file
+    path: azureml:qwen3-train-sample:1
+outputs:
+  adapter:
+    type: uri_folder
+    mode: rw_mount
+resources:
+  instance_count: 1
+environment_variables:
+  SUBSCRIPTION_ID: ${{azureml.subscription_id}}
+  RESOURCE_GROUP: ${{azureml.resource_group}}
+  WORKSPACE_NAME: ${{azureml.workspace_name}}

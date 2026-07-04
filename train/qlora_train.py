@@ -14,7 +14,7 @@ from train.data import load_sft_dataset
  
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
-    p.add_argument("--model", default="Qwen/Qwen3-7B")
+    p.add_argument("--model", default="Qwen/Qwen3-0.6B")
     p.add_argument("--train-jsonl", required=True)
     p.add_argument("--output-dir", default="./outputs/qlora")
     p.add_argument("--r", type=int, default=16)

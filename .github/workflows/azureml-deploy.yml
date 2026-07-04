@@ -19,10 +19,14 @@ on:
         description: Managed online endpoint name
         required: true
         default: qwen3-prod
-      instance_type:
-        description: Azure ML compute SKU for the deployment
+      profile:
+        description: Deployment profile (cpu = E4s, gpu = NC4as T4)
         required: true
-        default: Standard_E4s_v3
+        default: cpu
+        type: choice
+        options:
+          - cpu
+          - gpu
       instance_count:
         description: Initial deployment instance count
         required: true
@@ -45,10 +49,11 @@ jobs:
       WORKSPACE_NAME: ${{ github.event.inputs.workspace_name }}
       AML_LOCATION: ${{ github.event.inputs.location }}
       ENDPOINT_NAME: ${{ github.event.inputs.endpoint_name }}
-      INSTANCE_TYPE: ${{ github.event.inputs.instance_type }}
       INSTANCE_COUNT: ${{ github.event.inputs.instance_count }}
       MODEL_ASSET_VERSION: ${{ github.event.inputs.model_asset_version }}
       ACTION_GROUP_ID: ${{ secrets.AZURE_ACTION_GROUP_ID }}
+      INSTANCE_TYPE: ${{ github.event.inputs.profile == 'gpu' && 'Standard_NC4as_T4_v3' || 'Standard_E4s_v3' }}
+      DEPLOY_BLUE_SPEC: ${{ github.event.inputs.profile == 'gpu' && 'deploy/deployment-blue-gpu.yaml' || 'deploy/deployment-blue.yaml' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -57,6 +62,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Install Python dependencies for render step
+        run: pip install pyyaml azure-identity azure-ai-ml
 
       - name: Azure login
         uses: azure/login@v2
@@ -71,7 +79,9 @@ jobs:
       - name: Show Azure context
         run: |
           az account show --output table
-          az ml workspace list --resource-group "$RESOURCE_GROUP" --output table || true
+          echo "Profile: ${{ github.event.inputs.profile }}"
+          echo "Instance type: $INSTANCE_TYPE"
+          echo "Deployment spec: $DEPLOY_BLUE_SPEC"
 
       - name: Create resource group and workspace
         run: |

@@ -9,7 +9,10 @@ PYTHON        ?= .venv/bin/python
 AZ            ?= az
 MODEL_NAME    ?= Qwen/Qwen3-0.6B
 PORT          ?= 8000
-TRAIN_JSONL   ?= train/data/train.jsonl
+TRAIN_JSONL   ?= train/data/sample.jsonl
+DOCKER_IMAGE  ?= practical-llops-book:latest
+DEPLOY_BLUE_SPEC ?= deploy/deployment-blue.yaml
+DEPLOY_GREEN_SPEC ?= deploy/deployment-green.yaml
 
 # ── Azure ML settings (override via env or CLI) ──────────────────────────────────
 AML_RESOURCE_GROUP   ?= $(RESOURCE_GROUP)
@@ -36,6 +39,27 @@ serve:
 	MODEL_NAME=$(MODEL_NAME) DEVICE=cpu DTYPE=fp32 \
 	  .venv/bin/uvicorn serve.api:app --host 0.0.0.0 --port $(PORT) --reload
 
+.PHONY: serve-gpu
+serve-gpu:
+	MODEL_NAME=$(MODEL_NAME) DEVICE=cuda DTYPE=bf16 \
+	  .venv/bin/uvicorn serve.api:app --host 0.0.0.0 --port $(PORT) --reload
+
+.PHONY: docker-build
+docker-build:
+	docker build -f serve/Dockerfile -t $(DOCKER_IMAGE) .
+
+.PHONY: docker-run
+docker-run: docker-build
+	docker run --rm -p $(PORT):8000 \
+	  -e MODEL_NAME=$(MODEL_NAME) -e DEVICE=cpu -e DTYPE=fp32 \
+	  $(DOCKER_IMAGE)
+
+.PHONY: docker-run-gpu
+docker-run-gpu: docker-build
+	docker run --rm -p $(PORT):8000 --gpus all \
+	  -e MODEL_NAME=$(MODEL_NAME) -e DEVICE=cuda -e DTYPE=bf16 \
+	  $(DOCKER_IMAGE)
+
 .PHONY: health
 health:
 	curl -s http://localhost:$(PORT)/health | python -m json.tool
@@ -57,10 +81,58 @@ smoke-stream:
 
 .PHONY: eval
 eval:
+	@echo "Requires API running: make serve (in another terminal)"
 	$(PYTHON) -m eval.generate_predictions
 	$(PYTHON) -m eval.run_eval \
 	  --predictions eval/predictions.jsonl \
 	  --model-version $(MODEL_ASSET_VERSION)
+
+.PHONY: eval-judge
+eval-judge:
+	@echo "Requires JUDGE_API_KEY and predictions JSONL (run make eval first)"
+	$(PYTHON) -m eval.run_judge_eval \
+	  --predictions eval/predictions.jsonl \
+	  --baseline-predictions eval/baseline_predictions.jsonl
+
+.PHONY: train-lora-local
+train-lora-local:
+	$(PYTHON) -m train.lora_train --train-jsonl $(TRAIN_JSONL) --output-dir outputs/lora --epochs 1
+
+.PHONY: train-qlora-local
+train-qlora-local:
+	$(PYTHON) -m train.qlora_train --train-jsonl $(TRAIN_JSONL) --output-dir outputs/qlora --epochs 1
+
+.PHONY: compute-gpu-create
+compute-gpu-create:
+	$(AZ) ml compute create \
+	  --file deploy/compute-gpu.yaml \
+	  --resource-group $(AML_RESOURCE_GROUP) \
+	  --workspace-name $(AML_WORKSPACE)
+
+.PHONY: upload-train-data
+upload-train-data:
+	@if $(AZ) ml data show \
+	  --name qwen3-train-sample \
+	  --version 1 \
+	  --resource-group $(AML_RESOURCE_GROUP) \
+	  --workspace-name $(AML_WORKSPACE) >/dev/null 2>&1; then \
+	  echo "Data asset qwen3-train-sample:1 already exists; skipping upload."; \
+	else \
+	  $(AZ) ml data create \
+	    --name qwen3-train-sample \
+	    --version 1 \
+	    --path train/data/sample.jsonl \
+	    --type uri_file \
+	    --resource-group $(AML_RESOURCE_GROUP) \
+	    --workspace-name $(AML_WORKSPACE); \
+	fi
+
+.PHONY: train-lora-azure
+train-lora-azure: upload-train-data
+	$(AZ) ml job create \
+	  --file deploy/job-lora-train.yaml \
+	  --resource-group $(AML_RESOURCE_GROUP) \
+	  --workspace-name $(AML_WORKSPACE)
 
 .PHONY: obs-show
 obs-show:
@@ -207,7 +279,7 @@ endpoint-update:
 .PHONY: deploy-blue
 deploy-blue:
 	@SPEC=$$(mktemp /tmp/deploy-blue.XXXXXX.yaml); \
-	$(PYTHON) -m deploy.render_deployment --input deploy/deployment-blue.yaml --output "$$SPEC"; \
+	$(PYTHON) -m deploy.render_deployment --input $(DEPLOY_BLUE_SPEC) --output "$$SPEC"; \
 	if $(AZ) ml online-deployment show \
 	  --name blue \
 	  --endpoint-name $(ENDPOINT_NAME) \
@@ -234,10 +306,14 @@ deploy-blue:
 	fi; \
 	rm -f "$$SPEC"
 
+.PHONY: deploy-blue-gpu
+deploy-blue-gpu:
+	$(MAKE) deploy-blue DEPLOY_BLUE_SPEC=deploy/deployment-blue-gpu.yaml INSTANCE_TYPE=Standard_NC4as_T4_v3
+
 .PHONY: deploy-blue-update
 deploy-blue-update:
 	@SPEC=$$(mktemp /tmp/deploy-blue.XXXXXX.yaml); \
-	$(PYTHON) -m deploy.render_deployment --input deploy/deployment-blue.yaml --output "$$SPEC"; \
+	$(PYTHON) -m deploy.render_deployment --input $(DEPLOY_BLUE_SPEC) --output "$$SPEC"; \
 	$(AZ) ml online-deployment update \
 	  --name blue \
 	  --endpoint-name $(ENDPOINT_NAME) \
@@ -254,7 +330,7 @@ deploy-blue-update:
 .PHONY: deploy-green
 deploy-green:
 	@SPEC=$$(mktemp /tmp/deploy-green.XXXXXX.yaml); \
-	$(PYTHON) -m deploy.render_deployment --input deploy/deployment-green.yaml --output "$$SPEC"; \
+	$(PYTHON) -m deploy.render_deployment --input $(DEPLOY_GREEN_SPEC) --output "$$SPEC"; \
 	if $(AZ) ml online-deployment show \
 	  --name green \
 	  --endpoint-name $(ENDPOINT_NAME) \
@@ -275,10 +351,14 @@ deploy-green:
 	fi; \
 	rm -f "$$SPEC"
 
+.PHONY: deploy-green-gpu
+deploy-green-gpu:
+	$(MAKE) deploy-green DEPLOY_GREEN_SPEC=deploy/deployment-green-gpu.yaml INSTANCE_TYPE=Standard_NC4as_T4_v3
+
 .PHONY: deploy-green-update
 deploy-green-update:
 	@SPEC=$$(mktemp /tmp/deploy-green.XXXXXX.yaml); \
-	$(PYTHON) -m deploy.render_deployment --input deploy/deployment-green.yaml --output "$$SPEC"; \
+	$(PYTHON) -m deploy.render_deployment --input $(DEPLOY_GREEN_SPEC) --output "$$SPEC"; \
 	$(AZ) ml online-deployment update \
 	  --name green \
 	  --endpoint-name $(ENDPOINT_NAME) \
@@ -364,6 +444,11 @@ endpoint-test:
 	  | $(PYTHON) -c 'import json, sys; payload = sys.stdin.read(); obj = json.loads(payload); obj = json.loads(obj) if isinstance(obj, str) else obj; print(json.dumps(obj, indent=2))'
 
 # ── Full deploy pipeline (first time) ───────────────────────────────────────────
+
+.PHONY: deploy-all-gpu
+deploy-all-gpu: group-create workspace-create model-register endpoint-create deploy-blue-gpu deploy-observability deploy-autoscale deploy-alerts
+	@echo "✓ GPU endpoint deployed: $(ENDPOINT_NAME)"
+	@echo "Run 'make endpoint-test' to validate."
 
 .PHONY: deploy-all
 deploy-all: group-create workspace-create model-register endpoint-create deploy-blue deploy-observability deploy-autoscale deploy-alerts

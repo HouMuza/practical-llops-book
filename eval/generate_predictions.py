@@ -29,6 +29,7 @@ def main(
         results.append(
             {
                 "id": row["id"],
+                "input": row["input"],
                 "prediction": prediction,
                 "reference": row["reference"],
                 "schema": row.get("schema"),
