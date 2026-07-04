@@ -1,0 +1,8 @@
+{"id":"ex-001","input":"Extract the ticket id: Ticket T-123 was closed today.","reference":"T-123","task":"extraction"}
+{"id":"ex-002","input":"Return JSON with sentiment for: I am unhappy with the delay.","reference":"{\"sentiment\":\"negative\"}","task":"structured"}
+{"id":"ex-003","input":"Summarise: The deployment failed because GPU memory was exhausted during prefill.","reference":"Deployment failed due to GPU memory exhaustion during prefill.","task":"summarisation"}
+{"id":"ex-004","input":"Classify the issue: The server is down and not responding to requests.","reference":"server issue","task":"classification"}
+{"id":"ex-005","input":"Extract the date: The meeting is scheduled for 2024-07-01.","reference":"2024-07-01","task":"extraction"}
+{"id":"ex-006","input":"Return JSON with sentiment for: I love the new features!","reference":"{\"sentiment\":\"positive\"}","task":"structured"}
+{"id":"ex-007","input":"Summarise: The user reported a bug where the application crashes when uploading large files.","reference":"User reported a bug causing application crash when uploading large files.","task":"summarisation"}
+{"id":"ex-008","input":"Classify the issue: The login page is loading slowly and sometimes times out.","reference":"performance issue","task":"classification"}

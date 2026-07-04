@@ -1,0 +1,5 @@
+AzureMetrics
+| where ResourceProvider has "MICROSOFT.MACHINELEARNINGSERVICES"
+| where MetricName in ("RequestsPerMinute", "RequestLatency", "RequestFailures", "GpuUtilizationPercentage", "GpuMemoryUtilizationPercentage")
+| summarize avg(Total), p95(Total) by MetricName, bin(TimeGenerated, 5m), Resource
+| order by TimeGenerated desc

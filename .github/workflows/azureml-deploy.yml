@@ -1,0 +1,100 @@
+name: Deploy Azure ML Endpoint
+
+on:
+  workflow_dispatch:
+    inputs:
+      resource_group:
+        description: Azure resource group name
+        required: true
+        default: llmops-book-rg
+      workspace_name:
+        description: Azure ML workspace name
+        required: true
+        default: llmops-book-mlw
+      location:
+        description: Azure region for the resource group and workspace
+        required: true
+        default: swedencentral
+      endpoint_name:
+        description: Managed online endpoint name
+        required: true
+        default: qwen3-prod
+      instance_type:
+        description: Azure ML compute SKU for the deployment
+        required: true
+        default: Standard_E4s_v3
+      instance_count:
+        description: Initial deployment instance count
+        required: true
+        default: "1"
+      model_asset_version:
+        description: Registered model asset version
+        required: true
+        default: "1"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      RESOURCE_GROUP: ${{ github.event.inputs.resource_group }}
+      WORKSPACE_NAME: ${{ github.event.inputs.workspace_name }}
+      AML_LOCATION: ${{ github.event.inputs.location }}
+      ENDPOINT_NAME: ${{ github.event.inputs.endpoint_name }}
+      INSTANCE_TYPE: ${{ github.event.inputs.instance_type }}
+      INSTANCE_COUNT: ${{ github.event.inputs.instance_count }}
+      MODEL_ASSET_VERSION: ${{ github.event.inputs.model_asset_version }}
+      ACTION_GROUP_ID: ${{ secrets.AZURE_ACTION_GROUP_ID }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Azure ML CLI extension
+        run: az extension add -n ml -y
+
+      - name: Show Azure context
+        run: |
+          az account show --output table
+          az ml workspace list --resource-group "$RESOURCE_GROUP" --output table || true
+
+      - name: Create resource group and workspace
+        run: |
+          make group-create
+          make workspace-create
+
+      - name: Register model and deploy blue slot
+        run: |
+          make model-register
+          make endpoint-create
+          make deploy-blue
+
+      - name: Wire observability
+        run: make deploy-observability
+
+      - name: Apply autoscale and alerts
+        run: |
+          make deploy-autoscale
+          if [ -n "$ACTION_GROUP_ID" ]; then
+            make deploy-alerts
+          else
+            echo "Skipping deploy-alerts because AZURE_ACTION_GROUP_ID is not configured."
+          fi
+
+      - name: Smoke test endpoint
+        run: make endpoint-test

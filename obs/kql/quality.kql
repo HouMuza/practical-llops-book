@@ -1,0 +1,4 @@
+customMetrics
+| where name in ("eval_schema_validity", "eval_correctness", "eval_refusal_rate", "eval_faithfulness")
+| summarize avg(value) by name, bin(timestamp, 1h), tostring(customDimensions.model_version)
+| order by timestamp desc

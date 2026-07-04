@@ -147,6 +147,15 @@ activemq-data/
 # SageMath parsed files
 *.sage.py
 
+# Local ML / eval artifacts
+mlruns/
+offline_eval_report.csv
+eval/predictions.jsonl
+obs/reports/observability_report.md
+
+# Azure CLI local venv (optional helper)
+.azcli-venv/
+
 # Environments
 .env
 .envrc

@@ -1,0 +1,15 @@
+.git
+.github
+.venv
+.azcli-venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+mlruns/
+offline_eval_report.csv
+eval/predictions.jsonl
+*.log
+.DS_Store
