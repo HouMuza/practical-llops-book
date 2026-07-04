@@ -85,7 +85,7 @@ Requires an **OpenAI-compatible** chat completions API (OpenAI, Azure OpenAI, et
 ### Setup
 
 ```bash
-export JUDGE_API_KEY=sk-...
+export JUDGE_API_KEY=<judge-api-key>
 export JUDGE_ENDPOINT=https://api.openai.com/v1/chat/completions   # optional
 export JUDGE_MODEL=gpt-4o-mini                                      # optional
 ```
@@ -124,8 +124,8 @@ Or generate baseline predictions by pointing `generate_predictions` at a differe
 For deployed endpoints, adapt the payload:
 
 ```bash
-SCORING_URI=$(az ml online-endpoint show --name qwen3-prod -g $RG -w $WS --query scoring_uri -o tsv)
-KEY=$(az ml online-endpoint get-credentials --name qwen3-prod -g $RG -w $WS --query primaryKey -o tsv)
+SCORING_URI=$(az ml online-endpoint show --name qwen3-yourname-prod -g $RG -w $WS --query scoring_uri -o tsv)
+KEY=$(az ml online-endpoint get-credentials --name qwen3-yourname-prod -g $RG -w $WS --query primaryKey -o tsv)
 
 curl -s -X POST "$SCORING_URI" \
   -H "Authorization: Bearer $KEY" \

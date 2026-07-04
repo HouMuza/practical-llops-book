@@ -159,8 +159,10 @@ outputs/
 # Azure CLI local venv (optional helper)
 .azcli-venv/
 
-# Environments
+# Environments and secrets (never commit)
 .env
+.env.*
+!.env.example
 .envrc
 .venv
 env/

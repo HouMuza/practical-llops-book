@@ -174,6 +174,7 @@ Step-by-step guides for every path readers need:
 | [Azure ML deployment](docs/azure-deployment.md) | `make deploy-all`, `make deploy-all-gpu`, GitHub Actions |
 | [Training & evaluation](docs/training-and-eval.md) | `make train-lora-local`, `make train-lora-azure`, `make eval-judge` |
 | [YAML reference](docs/yaml-reference.md) | Field-by-field deploy file reference |
+| [Testing on Azure](docs/testing-azure.md) | `make azure-preflight`, `make deploy-all`, `make azure-test` |
 
 ### Common commands
 
@@ -229,7 +230,7 @@ The verified default path in this repository uses a **CPU-backed** configuration
 
 | Setting        | Default           |
 | -------------- | ----------------- |
-| Region         | `swedencentral`   |
+| Region         | `westeurope`   |
 | Endpoint auth  | key               |
 | Deployment SKU | `Standard_E4s_v3` |
 | Runtime device | `cpu`             |
@@ -270,7 +271,7 @@ AZURE_SUBSCRIPTION_ID
 AZURE_ACTION_GROUP_ID   # optional, alerts only
 ```
 
-Use Azure federated credentials (OIDC) for the workflow identity. Trigger from the Actions tab and provide resource group, workspace name, location, endpoint name, instance type, instance count, and model asset version.
+Use Azure federated credentials (OIDC) for the workflow identity. Trigger from the Actions tab and provide resource group, workspace name, location, endpoint name (must be region-wide unique), instance type, instance count, and model asset version.
 
 ---
 

@@ -18,8 +18,8 @@ DEPLOY_GREEN_SPEC ?= deploy/deployment-green.yaml
 AML_RESOURCE_GROUP   ?= $(RESOURCE_GROUP)
 AML_WORKSPACE        ?= $(WORKSPACE_NAME)
 AML_SUBSCRIPTION     ?= $(SUBSCRIPTION_ID)
-AML_LOCATION         ?= swedencentral
-ENDPOINT_NAME        ?= qwen3-prod
+AML_LOCATION         ?= westeurope
+ENDPOINT_NAME        ?= qwen3-yourname-prod
 MODEL_ASSET_NAME     ?= qwen3-0-6b
 MODEL_ASSET_VERSION  ?= 1
 MODEL_ASSET_PATH     ?= deploy/model_artifact
@@ -27,6 +27,14 @@ INSTANCE_TYPE        ?= Standard_E4s_v3
 INSTANCE_COUNT       ?= 1
 
 # ── Local development ────────────────────────────────────────────────────────────
+
+.PHONY: azure-preflight
+azure-preflight:
+	@bash scripts/azure_preflight.sh
+
+.PHONY: azure-test
+azure-test:
+	@bash scripts/azure_endpoint_test.sh
 
 .PHONY: install
 install:
@@ -251,30 +259,36 @@ model-register:
 
 .PHONY: endpoint-create
 endpoint-create:
-	@if $(AZ) ml online-endpoint show \
+	@SPEC=$$(mktemp /tmp/endpoint.XXXXXX.yaml); \
+	$(PYTHON) -m deploy.render_endpoint --input deploy/endpoint.yaml --output "$$SPEC"; \
+	if $(AZ) ml online-endpoint show \
 	  --name $(ENDPOINT_NAME) \
 	  --resource-group $(AML_RESOURCE_GROUP) \
 	  --workspace-name $(AML_WORKSPACE) >/dev/null 2>&1; then \
 	  echo "Endpoint $(ENDPOINT_NAME) already exists; applying update."; \
 	  $(AZ) ml online-endpoint update \
 	    --name $(ENDPOINT_NAME) \
-	    --file deploy/endpoint.yaml \
+	    --file "$$SPEC" \
 	    --resource-group $(AML_RESOURCE_GROUP) \
 	    --workspace-name $(AML_WORKSPACE); \
 	else \
 	  $(AZ) ml online-endpoint create \
-	    --file deploy/endpoint.yaml \
+	    --file "$$SPEC" \
 	    --resource-group $(AML_RESOURCE_GROUP) \
 	    --workspace-name $(AML_WORKSPACE); \
-	fi
+	fi; \
+	rm -f "$$SPEC"
 
 .PHONY: endpoint-update
 endpoint-update:
+	@SPEC=$$(mktemp /tmp/endpoint.XXXXXX.yaml); \
+	$(PYTHON) -m deploy.render_endpoint --input deploy/endpoint.yaml --output "$$SPEC"; \
 	$(AZ) ml online-endpoint update \
 	  --name $(ENDPOINT_NAME) \
-	  --file deploy/endpoint.yaml \
+	  --file "$$SPEC" \
 	  --resource-group $(AML_RESOURCE_GROUP) \
-	  --workspace-name $(AML_WORKSPACE)
+	  --workspace-name $(AML_WORKSPACE); \
+	rm -f "$$SPEC"
 
 .PHONY: deploy-blue
 deploy-blue:
@@ -301,6 +315,11 @@ deploy-blue:
 	  $(AZ) ml online-deployment create \
 	    --file "$$SPEC" \
 	    --all-traffic \
+	    --resource-group $(AML_RESOURCE_GROUP) \
+	    --workspace-name $(AML_WORKSPACE); \
+	  $(AZ) ml online-endpoint update \
+	    --name $(ENDPOINT_NAME) \
+	    --traffic "blue=100" \
 	    --resource-group $(AML_RESOURCE_GROUP) \
 	    --workspace-name $(AML_WORKSPACE); \
 	fi; \
@@ -437,7 +456,7 @@ endpoint-test:
 	  --resource-group $(AML_RESOURCE_GROUP) \
 	  --workspace-name $(AML_WORKSPACE) \
 	  --query primaryKey -o tsv 2>/dev/null || $(AZ) account get-access-token --query accessToken -o tsv))
-	curl -s -X POST $(SCORING_URI) \
+	@curl -s -X POST $(SCORING_URI) \
 	  -H "Authorization: Bearer $(TOKEN)" \
 	  -H 'Content-Type: application/json' \
 	  -d '{"prompt":"Explain KV cache.","max_new_tokens":40}' \

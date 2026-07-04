@@ -51,7 +51,7 @@ make endpoint-test
 
 ### What `make deploy-all` does
 
-1. `group-create`: resource group in `swedencentral` (override with `AML_LOCATION`)
+1. `group-create`: resource group in `westeurope` (override with `AML_LOCATION`)
 2. `workspace-create`: Azure ML workspace
 3. `model-register`: placeholder asset at `deploy/model_artifact` (model loads from Hugging Face at runtime)
 4. `endpoint-create`: applies `deploy/endpoint.yaml`

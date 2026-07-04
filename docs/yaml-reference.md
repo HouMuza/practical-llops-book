@@ -6,7 +6,7 @@ Field-by-field guide for deployment and training files in `deploy/`.
 
 | Field | Value | Meaning |
 |-------|-------|---------|
-| `name` | `qwen3-prod` | Managed online endpoint name |
+| `name` | `qwen3-yourname-prod` | Managed online endpoint name |
 | `auth_mode` | `key` | Endpoint key auth (`aad_token` for Entra ID) |
 | `traffic.blue` | `100` | 100% traffic to blue deployment |
 

@@ -14,11 +14,11 @@ on:
       location:
         description: Azure region for the resource group and workspace
         required: true
-        default: swedencentral
+        default: westeurope
       endpoint_name:
         description: Managed online endpoint name
         required: true
-        default: qwen3-prod
+        default: qwen3-yourname-prod
       profile:
         description: Deployment profile (cpu = E4s, gpu = NC4as T4)
         required: true

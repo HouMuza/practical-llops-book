@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 import yaml
@@ -17,8 +18,31 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    spec = yaml.safe_load(Path(args.input_path).read_text(encoding="utf-8"))
+    input_path = Path(args.input_path).resolve()
+    spec = yaml.safe_load(input_path.read_text(encoding="utf-8"))
     env = resolve_observability_env()
+
+    base_dir = input_path.parent
+
+    endpoint_name = os.getenv("ENDPOINT_NAME")
+    if endpoint_name:
+        spec["endpoint_name"] = endpoint_name
+
+    def resolve_local_path(value: str) -> str:
+        path = Path(value)
+        if path.is_absolute():
+            return str(path)
+        return str((base_dir / path).resolve())
+
+    code_config = spec.get("code_configuration") or {}
+    if code_config.get("code"):
+        code_config["code"] = resolve_local_path(code_config["code"])
+        spec["code_configuration"] = code_config
+
+    build = (spec.get("environment") or {}).get("build") or {}
+    if build.get("path"):
+        build["path"] = resolve_local_path(build["path"])
+        spec.setdefault("environment", {})["build"] = build
 
     env_vars = dict(spec.get("environment_variables") or {})
     for key in ["LOG_FORMAT", "APPLICATIONINSIGHTS_CONNECTION_STRING", "MLFLOW_TRACKING_URI"]:

@@ -1,6 +1,6 @@
 $schema: https://azuremlschemas.azureedge.net/latest/managedOnlineDeployment.schema.json
 name: blue
-endpoint_name: qwen3-prod
+endpoint_name: qwen3-yourname-prod
 model: azureml:qwen3-0-6b:1
 code_configuration:
   code: ../

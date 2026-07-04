@@ -106,7 +106,7 @@ def parse_args() -> argparse.Namespace:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     full = sub.add_parser("deploy-all", help="Register model, create endpoint, create blue deployment, route 100% traffic")
-    full.add_argument("--endpoint", default="qwen3-prod")
+    full.add_argument("--endpoint", default="qwen3-yourname-prod")
     full.add_argument("--deployment", default="blue")
     full.add_argument("--model-name", default="qwen3-0.6b")
     full.add_argument("--model-version", default="1")
@@ -117,12 +117,12 @@ def parse_args() -> argparse.Namespace:
     full.add_argument("--dtype", default=os.getenv("DTYPE", "fp32"))
 
     traffic = sub.add_parser("set-traffic", help="Update endpoint traffic split")
-    traffic.add_argument("--endpoint", default="qwen3-prod")
+    traffic.add_argument("--endpoint", default="qwen3-yourname-prod")
     traffic.add_argument("--blue", type=int, default=100)
     traffic.add_argument("--green", type=int, default=0)
 
     show = sub.add_parser("show", help="Show endpoint details")
-    show.add_argument("--endpoint", default="qwen3-prod")
+    show.add_argument("--endpoint", default="qwen3-yourname-prod")
 
     return p.parse_args()
 
